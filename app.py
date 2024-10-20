@@ -204,12 +204,7 @@ def main():
                     qr_url = f"https://img.vietqr.io/image/MB-ngothuong-print.png?amount={qr_amount}&addInfo={qr_description}"
                     st.image(qr_url, caption="Mã QR để trả nợ")
                     
-                    st.markdown("### Thông tin thanh toán:")
-                    st.markdown("- Ngân hàng: MB Bank")
-                    st.markdown("- Số tài khoản: ngothuong")
-                    st.markdown(f"- Số tiền: {qr_amount:,} VNĐ")
-                    st.markdown(f"- Nội dung: {qr_description.replace('%20', ' ')}")
-                    
+
                     messenger_link = "https://www.messenger.com/t/100015826450743"
                     st.markdown(f"[Nhấn vào đây để liên hệ qua Messenger]({messenger_link})", unsafe_allow_html=True)
 
