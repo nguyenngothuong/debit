@@ -33,17 +33,18 @@ def get_tenant_access_token():
         raise Exception(f"Không thể lấy token: {str(e)}")
 
 # Hàm để tìm kiếm dữ liệu từ Lark Suite
-def search_lark_data(table_id, filter_string):
+def search_lark_data(table_id, filter_string=None):
     token = get_tenant_access_token()
-    url = f"https://open.larksuite.com/open-apis/bitable/v1/apps/{st.secrets['BASE_ID']}/tables/{table_id}/records/search"
+    url = f"https://open.larksuite.com/open-apis/bitable/v1/apps/{st.secrets['BASE_ID']}/tables/{table_id}/records"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json; charset=utf-8"
     }
-    data = {
-        "filter": filter_string,
+    params = {
         "page_size": 500
     }
+    if filter_string:
+        params["filter"] = filter_string
     
     all_items = []
     has_more = True
@@ -51,12 +52,12 @@ def search_lark_data(table_id, filter_string):
     
     while has_more:
         if page_token:
-            data["page_token"] = page_token
+            params["page_token"] = page_token
         
         logger.info(f"Đang gửi yêu cầu tìm kiếm cho trang {len(all_items) // 500 + 1}")
         
         try:
-            response = requests.post(url, headers=headers, json=data)
+            response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
             logger.info(f"Đã nhận phản hồi từ yêu cầu tìm kiếm cho trang {len(all_items) // 500 + 1}")
             
@@ -72,15 +73,9 @@ def search_lark_data(table_id, filter_string):
             logger.error(f"Lỗi khi tìm kiếm dữ liệu: {str(e)}")
             logger.error(f"URL: {url}")
             logger.error(f"Headers: {headers}")
-            logger.error(f"Data: {json.dumps(data)}")
+            logger.error(f"Params: {params}")
             logger.error(f"Response: {response.text if 'response' in locals() else 'No response'}")
             raise Exception(f"Không thể tìm kiếm dữ liệu: {str(e)}")
-    
-    # Lưu tất cả dữ liệu vào file JSON
-    output_filename = f"{table_id}_output.json"
-    with open(output_filename, "w", encoding="utf-8") as f:
-        json.dump({"items": all_items}, f, ensure_ascii=False, indent=2)
-    logger.info(f"Đã lưu tất cả dữ liệu vào file {output_filename}")
     
     logger.info(f"Đã hoàn thành tìm kiếm, tổng số bản ghi: {len(all_items)}")
     return all_items
@@ -98,7 +93,7 @@ def get_debtor_info(phone_number):
         ]
     }
     logger.info(f"Đang tìm kiếm thông tin người nợ cho số điện thoại: {phone_number}")
-    config_data = search_lark_data(st.secrets["CONFIG_TABLE_ID"], filter)
+    config_data = search_lark_data(st.secrets["CONFIG_TABLE_ID"], json.dumps(filter))
     if config_data:
         logger.info(f"Đã tìm thấy thông tin người nợ cho số điện thoại: {phone_number}")
         return config_data[0]["fields"].get("Người nợ"), config_data[0]["fields"].get("Người nợ")
@@ -118,7 +113,7 @@ def get_debt_info(debtor_code):
         ]
     }
     logger.info(f"Đang tìm kiếm thông tin nợ cho người nợ: {debtor_code}")
-    debt_data = search_lark_data(st.secrets["DEBT_TABLE_ID"], filter)
+    debt_data = search_lark_data(st.secrets["DEBT_TABLE_ID"], json.dumps(filter))
     debt_details = []
     for item in debt_data:
         fields = item["fields"]
@@ -204,7 +199,6 @@ def main():
                     qr_url = f"https://img.vietqr.io/image/MB-ngothuong-print.png?amount={qr_amount}&addInfo={qr_description}"
                     st.image(qr_url, caption="Mã QR để trả nợ")
                     
-
                     messenger_link = "https://www.messenger.com/t/100015826450743"
                     st.markdown(f"[Nhấn vào đây để liên hệ qua Messenger]({messenger_link})", unsafe_allow_html=True)
 
@@ -247,7 +241,7 @@ def main():
                 if login(username, password):
                     st.session_state.logged_in = True
                     logger.info("Đăng nhập thành công")
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error("Sai tên đăng nhập hoặc mật khẩu.")
                     logger.warning("Đăng nhập thất bại")
@@ -257,11 +251,11 @@ def main():
         if st.button("Đăng xuất"):
             st.session_state.logged_in = False
             logger.info("Đã đăng xuất")
-            st.experimental_rerun()
+            st.rerun()
 
         try:
             logger.info("Đang lấy dữ liệu nợ cho trang Admin")
-            debt_data = search_lark_data(st.secrets["DEBT_TABLE_ID"], "")
+            debt_data = search_lark_data(st.secrets["DEBT_TABLE_ID"])
             debt_details = []
             for item in debt_data:
                 fields = item["fields"]
@@ -270,13 +264,13 @@ def main():
                     "Người nợ": fields.get("Người nợ", ""),
                     "Ngày ghi nợ": datetime.fromtimestamp(fields.get("Ngày ghi nợ", 0)/1000).strftime('%d/%m/%Y') if fields.get("Ngày ghi nợ") else "Không có",
                     "Thời gian phát sinh": datetime.fromtimestamp(fields.get("Thời phát phát sinh của khoản nợ", 0)/1000).strftime('%d/%m/%Y %H:%M:%S') if fields.get("Thời phát phát sinh của khoản nợ") else "Không có",
-                    "Số tiền": float(fields.get("Số tiền ghi nợ", 0)),
+                    "Số tiền": float(fields.get("Số tiền ghi nợ") or 0),
                     "Nội dung": fields.get("Ghi chú khoản nợ", [{}])[0].get("text", "") if isinstance(fields.get("Ghi chú khoản nợ"), list) else "",
                     "Trạng thái": "Đã trả" if fields.get("Đã trả", False) else "Chưa trả"
                 })
             df = pd.DataFrame(debt_details)
             
-            status_filter = st.selectbox("Lọc theo trạng thái:", ["Tất cả", "Đã trả", "Chưa trả"])
+            status_filter = st.selectbox("Lọc theo trạng thái:", ["Chưa trả", "Tất cả", "Đã trả"], index=0)
             if status_filter != "Tất cả":
                 df = df[df["Trạng thái"] == status_filter]
             
@@ -284,7 +278,40 @@ def main():
             st.metric(label="Tổng số tiền còn lại phải trả", value=f"{total_unpaid:,.0f} VNĐ")
             
             st.dataframe(df.style.format({"Số tiền": "{:,.0f} VNĐ"}))
-            logger.info("Đã hiển thị dữ liệu nợ cho trang Admin")
+            
+            # Tạo biểu đồ cột nằm ngang cho tổng nợ theo người dùng
+            user_debt = df[df["Trạng thái"] == "Chưa trả"].groupby("Người nợ")["Số tiền"].sum().sort_values(ascending=True)
+            
+            def format_amount(amount):
+                if amount >= 1000000:
+                    return f"{amount/1000000:.1f}M"
+                elif amount >= 1000:
+                    return f"{amount/1000:.0f}k"
+                else:
+                    return f"{amount:.0f}"
+            
+            fig = go.Figure(go.Bar(
+                x=user_debt.values,
+                y=user_debt.index,
+                orientation='h',
+                text=[format_amount(val) for val in user_debt.values],
+                textposition='outside',
+                textfont=dict(size=12),
+                hoverinfo='text',
+                hovertext=[f"{name}: {format_amount(val)} VNĐ" for name, val in zip(user_debt.index, user_debt.values)]
+            ))
+            
+            fig.update_layout(
+                title='Tổng nợ theo người dùng (Chưa trả)',
+                xaxis_title='Tổng số tiền nợ (VNĐ)',
+                yaxis_title='Người nợ',
+                height=600,
+                xaxis=dict(showticklabels=False)
+            )
+            
+            st.plotly_chart(fig)
+            
+            logger.info("Đã hiển thị dữ liệu nợ và biểu đồ cho trang Admin")
             
         except Exception as e:
             st.error(f"Đã xảy ra lỗi khi lấy dữ liệu: {str(e)}")
