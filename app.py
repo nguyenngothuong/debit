@@ -201,20 +201,20 @@ def main():
                     st.dataframe(df.style.format({"Số tiền": "{:,.0f} VNĐ"}))
                 else:
                     df_unpaid = df[df["Trạng thái"] == "Chưa trả"].sort_values("Ngày ghi nợ", ascending=True)
-                    current_month = None
-                    for _, row in df_unpaid.iterrows():
-                        date = datetime.strptime(row['Ngày ghi nợ'], '%d/%m/%Y')
-                        month = date.strftime('%Y-%m')
-                        if month != current_month:
-                            st.markdown(f"### {month}")
-                            current_month = month
-                        
-                        st.markdown(f"- {date.strftime('%d/%m')}:")
-                        st.markdown(f"  -> {row['Tên khoản nợ']}, {row['Số tiền']:,.0f} VNĐ")
-                        
-                        ghi_chu = row.get("Ghi chú khoản nợ", [{}])[0].get("text", "") if isinstance(row.get("Ghi chú khoản nợ"), list) else ""
-                        if ghi_chu:
-                            st.markdown(f"  *Ghi chú: {ghi_chu}*")
+                    df_pivot = df_unpaid.groupby([df_unpaid['Ngày ghi nợ'].dt.strftime('%Y-%m'), 'Ngày ghi nợ']).agg({
+                        'Số tiền': 'sum',
+                        'Ghi chú khoản nợ': lambda x: ', '.join([item[0]['text'] if isinstance(item, list) and len(item) > 0 else '' for item in x]),
+                        'Tên khoản nợ': lambda x: ', '.join(x)
+                    }).reset_index()
+                    
+                    for month, group in df_pivot.groupby(df_pivot['Ngày ghi nợ'].dt.strftime('%Y-%m')):
+                        st.markdown(f"### {month}")
+                        for _, row in group.iterrows():
+                            st.markdown(f"- {row['Ngày ghi nợ'].strftime('%d/%m')}:")
+                            st.markdown(f"  -> Số tiền: {row['Số tiền']:,.0f} VNĐ")
+                            st.markdown(f"  -> Tên: {row['Tên khoản nợ']}")
+                            if row['Ghi chú khoản nợ']:
+                                st.markdown(f"  -> Ghi chú: {row['Ghi chú khoản nợ']}")
                 
                 # Hiển thị mã QR và thông tin thanh toán
                 if total_unpaid > 0:
