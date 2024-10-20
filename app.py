@@ -201,11 +201,20 @@ def main():
                     st.dataframe(df.style.format({"Số tiền": "{:,.0f} VNĐ"}))
                 else:
                     df_unpaid = df[df["Trạng thái"] == "Chưa trả"].sort_values("Ngày ghi nợ", ascending=True)
+                    current_month = None
                     for _, row in df_unpaid.iterrows():
-                        st.markdown(f"**{row['Ngày ghi nợ']}**: {row['Tên khoản nợ']} - {row['Số tiền']:,.0f} VNĐ")
+                        date = datetime.strptime(row['Ngày ghi nợ'], '%d/%m/%Y')
+                        month = date.strftime('%Y-%m')
+                        if month != current_month:
+                            st.markdown(f"### {month}")
+                            current_month = month
+                        
+                        st.markdown(f"- {date.strftime('%d/%m')}:")
+                        st.markdown(f"  -> {row['Tên khoản nợ']}, {row['Số tiền']:,.0f} VNĐ")
+                        
                         ghi_chu = row.get("Ghi chú khoản nợ", [{}])[0].get("text", "") if isinstance(row.get("Ghi chú khoản nợ"), list) else ""
                         if ghi_chu:
-                            st.markdown(f"*Ghi chú: {ghi_chu}*")
+                            st.markdown(f"  *Ghi chú: {ghi_chu}*")
                 
                 # Hiển thị mã QR và thông tin thanh toán
                 if total_unpaid > 0:
