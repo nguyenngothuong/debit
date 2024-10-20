@@ -201,13 +201,13 @@ def main():
                     st.dataframe(df.style.format({"Số tiền": "{:,.0f} VNĐ"}))
                 else:
                     df_unpaid = df[df["Trạng thái"] == "Chưa trả"].sort_values("Ngày ghi nợ", ascending=True)
-                    df_pivot = df_unpaid.groupby([df_unpaid['Ngày ghi nợ'].dt.strftime('%Y-%m'), 'Ngày ghi nợ']).agg({
+                    df_pivot = df_unpaid.groupby([df_unpaid['Ngày ghi nợ'].strftime('%Y-%m'), 'Ngày ghi nợ']).agg({
                         'Số tiền': 'sum',
                         'Ghi chú khoản nợ': lambda x: ', '.join([item[0]['text'] if isinstance(item, list) and len(item) > 0 else '' for item in x]),
                         'Tên khoản nợ': lambda x: ', '.join(x)
                     }).reset_index()
                     
-                    for month, group in df_pivot.groupby(df_pivot['Ngày ghi nợ'].dt.strftime('%Y-%m')):
+                    for month, group in df_pivot.groupby(df_pivot['Ngày ghi nợ'].strftime('%Y-%m')):
                         st.markdown(f"### {month}")
                         for _, row in group.iterrows():
                             st.markdown(f"- {row['Ngày ghi nợ'].strftime('%d/%m')}:")
