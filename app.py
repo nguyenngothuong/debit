@@ -210,7 +210,7 @@ def main():
                 # Hiển thị mã QR và thông tin thanh toán
                 if total_unpaid > 0:
                     qr_amount = int(total_unpaid)
-                    qr_description = f"{st.session_state.debtor_name} tra no"
+                    qr_description = f"{st.session_state.debtor_name}%20tra%20no"
                     qr_url = f"https://img.vietqr.io/image/MB-ngothuong-qr_only.png?amount={qr_amount}&addInfo={qr_description}"
                     st.image(qr_url, caption="Mã QR để trả nợ")
                     
@@ -218,10 +218,10 @@ def main():
                     st.markdown("- Ngân hàng: MB Bank")
                     st.markdown("- Số tài khoản: ngothuong")
                     st.markdown(f"- Số tiền: {qr_amount:,} VNĐ")
-                    st.markdown(f"- Nội dung: {qr_description}")
+                    st.markdown(f"- Nội dung: {qr_description.replace('%20', ' ')}")
                     
                     payment_link = f"https://img.vietqr.io/image/MB-ngothuong.png?amount={qr_amount}&addInfo={qr_description}"
-                    st.markdown(f"[Nhấn vào đây để mở ứng dụng ngân hàng và thanh toán]({payment_link})")
+                    st.markdown(f"[Nhấn vào đây để mở ứng dụng ngân hàng và thanh toán]({payment_link})", unsafe_allow_html=True)
 
         with tab2:
             st.header("Dashboard")
