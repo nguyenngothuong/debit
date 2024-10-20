@@ -197,9 +197,12 @@ def main():
                 if display_option == "Bảng":
                     st.dataframe(df.style.format({"Số tiền": "{:,.0f} VNĐ"}))
                 else:
-                    df_unpaid = df[df["Trạng thái"] == "Chưa trả"].sort_values("Ngày ghi nợ")
+                    df_unpaid = df[df["Trạng thái"] == "Chưa trả"].sort_values("Ngày ghi nợ", ascending=True)
                     for _, row in df_unpaid.iterrows():
                         st.markdown(f"**{row['Ngày ghi nợ']}**: {row['Tên khoản nợ']} - {row['Số tiền']:,.0f} VNĐ")
+                        ghi_chu = row.get("Ghi chú khoản nợ", [{}])[0].get("text", "") if isinstance(row.get("Ghi chú khoản nợ"), list) else ""
+                        if ghi_chu:
+                            st.markdown(f"*Ghi chú: {ghi_chu}*")
                 
                 # Hiển thị mã QR
                 if total_unpaid > 0:
