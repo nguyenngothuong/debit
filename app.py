@@ -201,20 +201,14 @@ def main():
                     st.dataframe(df.style.format({"Số tiền": "{:,.0f} VNĐ"}))
                 else:
                     df_unpaid = df[df["Trạng thái"] == "Chưa trả"].sort_values("Ngày ghi nợ", ascending=True)
-                    df_pivot = df_unpaid.groupby([df_unpaid['Ngày ghi nợ'].strftime('%Y-%m'), 'Ngày ghi nợ']).agg({
-                        'Số tiền': 'sum',
-                        'Ghi chú khoản nợ': lambda x: ', '.join([item[0]['text'] if isinstance(item, list) and len(item) > 0 else '' for item in x]),
-                        'Tên khoản nợ': lambda x: ', '.join(x)
-                    }).reset_index()
-                    
-                    for month, group in df_pivot.groupby(df_pivot['Ngày ghi nợ'].strftime('%Y-%m')):
-                        st.markdown(f"### {month}")
-                        for _, row in group.iterrows():
-                            st.markdown(f"- {row['Ngày ghi nợ'].strftime('%d/%m')}:")
-                            st.markdown(f"  -> Số tiền: {row['Số tiền']:,.0f} VNĐ")
-                            st.markdown(f"  -> Tên: {row['Tên khoản nợ']}")
-                            if row['Ghi chú khoản nợ']:
-                                st.markdown(f"  -> Ghi chú: {row['Ghi chú khoản nợ']}")
+                    for _, row in df_unpaid.iterrows():
+                        st.markdown(f"### {row['Ngày ghi nợ']}")
+                        st.markdown(f"- Tên khoản nợ: {row['Tên khoản nợ'][0]['text'] if isinstance(row['Tên khoản nợ'], list) else row['Tên khoản nợ']}")
+                        st.markdown(f"- Người nợ: {row['Người nợ']}")
+                        st.markdown(f"- Thời gian phát sinh: {row['Thời gian phát sinh']}")
+                        st.markdown(f"- Số tiền: {row['Số tiền']:,.0f} VNĐ")
+                        st.markdown(f"- Nội dung: {row['Nội dung'][0]['text'] if isinstance(row['Nội dung'], list) else row['Nội dung']}")
+                        st.markdown("---")
                 
                 # Hiển thị mã QR và thông tin thanh toán
                 if total_unpaid > 0:
