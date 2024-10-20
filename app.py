@@ -188,9 +188,9 @@ def main():
             if st.session_state.debt_details is not None:
                 df = pd.DataFrame(st.session_state.debt_details)
                 
-                display_option = st.radio("Chọn cách hiển thị:", ["Bảng", "Danh sách"])
+                display_option = st.radio("Chọn cách hiển thị:", ["Danh sách", "Bảng"], index=0)
                 
-                status_filter = st.selectbox("Lọc theo trạng thái:", ["Tất cả", "Đã trả", "Chưa trả"])
+                status_filter = st.selectbox("Lọc theo trạng thái:", ["Chưa trả", "Tất cả", "Đã trả"], index=0)
                 if status_filter != "Tất cả":
                     df = df[df["Trạng thái"] == status_filter]
                 
