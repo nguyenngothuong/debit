@@ -188,8 +188,6 @@ def main():
             if st.session_state.debt_details is not None:
                 df = pd.DataFrame(st.session_state.debt_details)
                 
-                display_option = st.radio("Chọn cách hiển thị:", ["Danh sách", "Bảng"], index=0)
-                
                 status_filter = st.selectbox("Lọc theo trạng thái:", ["Chưa trả", "Tất cả", "Đã trả"], index=0)
                 if status_filter != "Tất cả":
                     df = df[df["Trạng thái"] == status_filter]
@@ -197,18 +195,7 @@ def main():
                 total_unpaid = df[df["Trạng thái"] == "Chưa trả"]["Số tiền"].sum()
                 st.metric(label="Tổng số tiền còn lại phải trả", value=f"{total_unpaid:,.0f} VNĐ")
                 
-                if display_option == "Bảng":
-                    st.dataframe(df.style.format({"Số tiền": "{:,.0f} VNĐ"}))
-                else:
-                    df_unpaid = df[df["Trạng thái"] == "Chưa trả"].sort_values("Ngày ghi nợ", ascending=True)
-                    for _, row in df_unpaid.iterrows():
-                        st.markdown(f"### {row['Ngày ghi nợ']}")
-                        st.markdown(f"- Tên khoản nợ: {row['Tên khoản nợ'][0]['text'] if isinstance(row['Tên khoản nợ'], list) else row['Tên khoản nợ']}")
-                        st.markdown(f"- Người nợ: {row['Người nợ']}")
-                        st.markdown(f"- Thời gian phát sinh: {row['Thời gian phát sinh']}")
-                        st.markdown(f"- Số tiền: {row['Số tiền']:,.0f} VNĐ")
-                        st.markdown(f"- Nội dung: {row['Nội dung'][0]['text'] if isinstance(row['Nội dung'], list) else row['Nội dung']}")
-                        st.markdown("---")
+                st.dataframe(df.style.format({"Số tiền": "{:,.0f} VNĐ"}))
                 
                 # Hiển thị mã QR và thông tin thanh toán
                 if total_unpaid > 0:
