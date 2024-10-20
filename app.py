@@ -61,6 +61,9 @@ def search_lark_data(table_id, filter_string):
             logger.info(f"Đã nhận phản hồi từ yêu cầu tìm kiếm cho trang {len(all_items) // 500 + 1}")
             
             response_data = response.json()["data"]
+            if response_data["items"] is None:
+                logger.info("Không tìm thấy dữ liệu phù hợp")
+                return []
             all_items.extend(response_data["items"])
             has_more = response_data["has_more"]
             page_token = response_data.get("page_token")
@@ -176,7 +179,7 @@ def main():
                                 st.success("Đã tìm thấy thông tin nợ.")
                             logger.info(f"Đã tìm thấy thông tin nợ cho số điện thoại: {phone_number}")
                         else:
-                            st.error("Không tìm thấy thông tin nợ cho số điện thoại này.")
+                            st.warning("Không tìm thấy thông tin nợ cho số điện thoại này. Vui lòng kiểm tra lại số điện thoại hoặc liên hệ với quản trị viên.")
                             logger.info(f"Không tìm thấy thông tin nợ cho số điện thoại: {phone_number}")
                     except Exception as e:
                         st.error(f"Đã xảy ra lỗi: {str(e)}")
@@ -204,12 +207,21 @@ def main():
                         if ghi_chu:
                             st.markdown(f"*Ghi chú: {ghi_chu}*")
                 
-                # Hiển thị mã QR
+                # Hiển thị mã QR và thông tin thanh toán
                 if total_unpaid > 0:
                     qr_amount = int(total_unpaid)
                     qr_description = f"{st.session_state.debtor_name} tra no"
                     qr_url = f"https://img.vietqr.io/image/MB-ngothuong-qr_only.png?amount={qr_amount}&addInfo={qr_description}"
                     st.image(qr_url, caption="Mã QR để trả nợ")
+                    
+                    st.markdown("### Thông tin thanh toán:")
+                    st.markdown("- Ngân hàng: MB Bank")
+                    st.markdown("- Số tài khoản: ngothuong")
+                    st.markdown(f"- Số tiền: {qr_amount:,} VNĐ")
+                    st.markdown(f"- Nội dung: {qr_description}")
+                    
+                    payment_link = f"https://img.vietqr.io/image/MB-ngothuong.png?amount={qr_amount}&addInfo={qr_description}"
+                    st.markdown(f"[Nhấn vào đây để mở ứng dụng ngân hàng và thanh toán]({payment_link})")
 
         with tab2:
             st.header("Dashboard")
