@@ -5,6 +5,7 @@ from datetime import datetime
 import logging
 import pandas as pd
 import plotly.graph_objects as go
+import re
 
 # Cấu hình logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -137,6 +138,11 @@ def login(username, password):
     logger.info("Đang thực hiện đăng nhập")
     return username == st.secrets["ADMIN_USERNAME"] and password == st.secrets["ADMIN_PASSWORD"]
 
+# Hàm kiểm tra số điện thoại hợp lệ
+def is_valid_phone_number(phone_number):
+    pattern = r'^(0|\+84)(\s|\.)?((3[2-9])|(5[689])|(7[06-9])|(8[1-689])|(9[0-46-9]))(\d)(\s|\.)?(\d{3})(\s|\.)?(\d{3})$'
+    return re.match(pattern, phone_number) is not None
+
 # Giao diện chính
 def main():
     st.title("Ứng dụng Theo dõi Nợ")
@@ -152,30 +158,34 @@ def main():
         tab1, tab2, tab3 = st.tabs(["Tra cứu nợ", "Dashboard", "Đăng nhập Admin"])
 
         with tab1:
-            # Mã hiện tại cho tab tra cứu nợ
             st.header("Tra cứu nợ")
             phone_number = st.text_input("Nhập số điện thoại:")
             if st.button("Tra cứu"):
-                try:
-                    logger.info(f"Đang tra cứu thông tin nợ cho số điện thoại: {phone_number}")
-                    debtor_code, debtor_name = get_debtor_info(phone_number)
-                    if debtor_code:
-                        st.session_state.debt_details = get_debt_info(debtor_code)
-                        st.session_state.debtor_name = debtor_name
-                        if debtor_name:
-                            st.success(f"Xin chào {debtor_name}!")
+                if not is_valid_phone_number(phone_number):
+                    st.error("Số điện thoại không hợp lệ. Vui lòng nhập lại.")
+                else:
+                    try:
+                        logger.info(f"Đang tra cứu thông tin nợ cho số điện thoại: {phone_number}")
+                        debtor_code, debtor_name = get_debtor_info(phone_number)
+                        if debtor_code:
+                            st.session_state.debt_details = get_debt_info(debtor_code)
+                            st.session_state.debtor_name = debtor_name
+                            if debtor_name:
+                                st.success(f"Xin chào {debtor_name}!")
+                            else:
+                                st.success("Đã tìm thấy thông tin nợ.")
+                            logger.info(f"Đã tìm thấy thông tin nợ cho số điện thoại: {phone_number}")
                         else:
-                            st.success("Đã tìm thấy thông tin nợ.")
-                        logger.info(f"Đã tìm thấy thông tin nợ cho số điện thoại: {phone_number}")
-                    else:
-                        st.error("Không tìm thấy thông tin nợ cho số điện thoại này.")
-                        logger.info(f"Không tìm thấy thông tin nợ cho số điện thoại: {phone_number}")
-                except Exception as e:
-                    st.error(f"Đã xảy ra lỗi: {str(e)}")
-                    logger.error(f"Lỗi khi tra cứu thông tin nợ: {str(e)}", exc_info=True)
+                            st.error("Không tìm thấy thông tin nợ cho số điện thoại này.")
+                            logger.info(f"Không tìm thấy thông tin nợ cho số điện thoại: {phone_number}")
+                    except Exception as e:
+                        st.error(f"Đã xảy ra lỗi: {str(e)}")
+                        logger.error(f"Lỗi khi tra cứu thông tin nợ: {str(e)}", exc_info=True)
 
             if st.session_state.debt_details is not None:
                 df = pd.DataFrame(st.session_state.debt_details)
+                
+                display_option = st.radio("Chọn cách hiển thị:", ["Bảng", "Danh sách"])
                 
                 status_filter = st.selectbox("Lọc theo trạng thái:", ["Tất cả", "Đã trả", "Chưa trả"])
                 if status_filter != "Tất cả":
@@ -184,7 +194,19 @@ def main():
                 total_unpaid = df[df["Trạng thái"] == "Chưa trả"]["Số tiền"].sum()
                 st.metric(label="Tổng số tiền còn lại phải trả", value=f"{total_unpaid:,.0f} VNĐ")
                 
-                st.dataframe(df.style.format({"Số tiền": "{:,.0f} VNĐ"}))
+                if display_option == "Bảng":
+                    st.dataframe(df.style.format({"Số tiền": "{:,.0f} VNĐ"}))
+                else:
+                    df_unpaid = df[df["Trạng thái"] == "Chưa trả"].sort_values("Ngày ghi nợ")
+                    for _, row in df_unpaid.iterrows():
+                        st.markdown(f"**{row['Ngày ghi nợ']}**: {row['Tên khoản nợ']} - {row['Số tiền']:,.0f} VNĐ")
+                
+                # Hiển thị mã QR
+                if total_unpaid > 0:
+                    qr_amount = int(total_unpaid)
+                    qr_description = f"{st.session_state.debtor_name} tra no"
+                    qr_url = f"https://img.vietqr.io/image/MB-ngothuong-qr_only.png?amount={qr_amount}&addInfo={qr_description}"
+                    st.image(qr_url, caption="Mã QR để trả nợ")
 
         with tab2:
             st.header("Dashboard")
