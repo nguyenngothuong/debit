@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import pandas as pd
 import plotly.graph_objects as go
@@ -253,8 +253,8 @@ def main():
                 debt_details.append({
                     "Tên khoản nợ": fields.get("Tên khoản nợ", [{}])[0].get("text", "") if isinstance(fields.get("Tên khoản nợ"), list) else "",
                     "Người nợ": fields.get("Người nợ", ""),
-                    "Ngày ghi nợ": datetime.fromtimestamp(fields.get("Ngày ghi nợ", 0)/1000).strftime('%d/%m/%Y') if fields.get("Ngày ghi nợ") else "Không có",
-                    "Thời gian phát sinh": datetime.fromtimestamp(fields.get("Thời phát phát sinh của khoản nợ", 0)/1000).strftime('%d/%m/%Y %H:%M:%S') if fields.get("Thời phát phát sinh của khoản nợ") else "Không có",
+                    "Ngày ghi nợ": (datetime.fromtimestamp(fields.get("Ngày ghi nợ", 0)/1000) + timedelta(hours=7)).strftime('%d/%m/%Y') if fields.get("Ngày ghi nợ") else "Không có",
+                    "Thời gian phát sinh": (datetime.fromtimestamp(fields.get("Thời phát phát sinh của khoản nợ", 0)/1000) + timedelta(hours=7)).strftime('%d/%m/%Y %H:%M:%S') if fields.get("Thời phát phát sinh của khoản nợ") else "Không có",
                     "Số tiền": float(fields.get("Số tiền ghi nợ") or 0),
                     "Nội dung": fields.get("Ghi chú khoản nợ", [{}])[0].get("text", "") if isinstance(fields.get("Ghi chú khoản nợ"), list) else "",
                     "Trạng thái": "Đã trả" if fields.get("Đã trả", False) else "Chưa trả"
