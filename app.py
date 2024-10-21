@@ -153,20 +153,20 @@ def main():
                     st.error("Số điện thoại không hợp lệ. Vui lòng nhập lại.")
                 else:
                     try:
-                        logger.info(f"Đang tra cứu thông tin nợ cho số điện thoại: {phone_number}")
-                        st.info(f"Đang tra cứu thông tin nợ cho số điện thoại: {phone_number}")
-                        debtor_code, debtor_name = get_debtor_info(phone_number)
-                        if debtor_code:
-                            st.session_state.debt_details = get_debt_info(debtor_code)
-                            st.session_state.debtor_name = debtor_name
-                            if debtor_name:
-                                st.success(f"Xin chào {debtor_name}!")
+                        with st.spinner(f"Đang tra cứu thông tin nợ cho số điện thoại: {phone_number}"):
+                            logger.info(f"Đang tra cứu thông tin nợ cho số điện thoại: {phone_number}")
+                            debtor_code, debtor_name = get_debtor_info(phone_number)
+                            if debtor_code:
+                                st.session_state.debt_details = get_debt_info(debtor_code)
+                                st.session_state.debtor_name = debtor_name
+                                if debtor_name:
+                                    st.success(f"Xin chào {debtor_name}!")
+                                else:
+                                    st.success("Đã tìm thấy thông tin nợ.")
+                                logger.info(f"Đã tìm thấy thông tin nợ cho số điện thoại: {phone_number}")
                             else:
-                                st.success("Đã tìm thấy thông tin nợ.")
-                            logger.info(f"Đã tìm thấy thông tin nợ cho số điện thoại: {phone_number}")
-                        else:
-                            st.warning("Không tìm thấy thông tin nợ cho số điện thoại này. Vui lòng kiểm tra lại số điện thoại hoặc liên hệ với quản trị viên.")
-                            logger.info(f"Không tìm thấy thông tin nợ cho số điện thoại: {phone_number}")
+                                st.warning("Không tìm thấy thông tin nợ cho số điện thoại này. Vui lòng kiểm tra lại số điện thoại hoặc liên hệ với quản trị viên.")
+                                logger.info(f"Không tìm thấy thông tin nợ cho số điện thoại: {phone_number}")
                     except Exception as e:
                         st.error(f"Đã xảy ra lỗi: {str(e)}")
                         logger.error(f"Lỗi khi tra cứu thông tin nợ: {str(e)}", exc_info=True)
