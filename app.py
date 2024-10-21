@@ -33,64 +33,52 @@ def get_tenant_access_token():
         raise Exception(f"Không thể lấy token: {str(e)}")
 
 # Hàm để tìm kiếm dữ liệu từ Lark Suite
-def search_lark_data(table_id, filter_string=None):
-    token = get_tenant_access_token()
-    url = f"https://open.larksuite.com/open-apis/bitable/v1/apps/{st.secrets['BASE_ID']}/tables/{table_id}/records"
+def search_lark_data(table_id, filter_string=None, page_size=500):
+    url = f"https://open.larksuite.com/open-apis/bitable/v1/apps/{st.secrets['BASE_ID']}/tables/{table_id}/records/search?page_size={page_size}"
     headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json; charset=utf-8"
+        "Authorization": f"Bearer {get_tenant_access_token()}",
+        "Content-Type": "application/json"
     }
-    params = {
-        "page_size": 500
-    }
+    payload = {}
     if filter_string:
-        params["filter"] = filter_string
+        payload = json.loads(filter_string)
     
-    all_items = []
-    has_more = True
-    page_token = None
+    logger.info(f"Gửi yêu cầu đến URL: {url}")
+    logger.info(f"Headers: {headers}")
+    logger.info(f"Payload: {json.dumps(payload)}")
     
-    while has_more:
-        if page_token:
-            params["page_token"] = page_token
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        response.raise_for_status()
+        logger.info(f"Mã trạng thái phản hồi: {response.status_code}")
+        logger.info(f"Nội dung phản hồi: {response.text}")
         
-        logger.info(f"Đang gửi yêu cầu tìm kiếm cho trang {len(all_items) // 500 + 1}")
+        data = response.json()
+        if "code" in data and data["code"] != 0:
+            logger.error(f"Lỗi API: {data}")
+            raise Exception(f"Lỗi API: {data['msg']}")
         
-        try:
-            response = requests.get(url, headers=headers, params=params)
-            response.raise_for_status()
-            logger.info(f"Đã nhận phản hồi từ yêu cầu tìm kiếm cho trang {len(all_items) // 500 + 1}")
-            
-            response_data = response.json()["data"]
-            if response_data["items"] is None:
-                logger.info("Không tìm thấy dữ liệu phù hợp")
-                return []
-            all_items.extend(response_data["items"])
-            has_more = response_data["has_more"]
-            page_token = response_data.get("page_token")
-            
-        except Exception as e:
-            logger.error(f"Lỗi khi tìm kiếm dữ liệu: {str(e)}")
-            logger.error(f"URL: {url}")
-            logger.error(f"Headers: {headers}")
-            logger.error(f"Params: {params}")
-            logger.error(f"Response: {response.text if 'response' in locals() else 'No response'}")
-            raise Exception(f"Không thể tìm kiếm dữ liệu: {str(e)}")
-    
-    logger.info(f"Đã hoàn thành tìm kiếm, tổng số bản ghi: {len(all_items)}")
-    return all_items
+        return data.get("data", {}).get("items", [])
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Lỗi yêu cầu: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Lỗi: {str(e)}")
+        raise
 
 # Hàm để lấy thông tin người nợ từ số điện thoại
 def get_debtor_info(phone_number):
     filter = {
-        "conjunction": "and",
-        "conditions": [
-            {
-                "field_name": "Số điện thoại",
-                "operator": "contains",
-                "value": [phone_number]
-            }
-        ]
+        "filter": {
+            "conjunction": "and",
+            "conditions": [
+                {
+                    "field_name": "phone",
+                    "operator": "contains",
+                    "value": [phone_number]
+                }
+            ]
+        }
     }
     logger.info(f"Đang tìm kiếm thông tin người nợ cho số điện thoại: {phone_number}")
     config_data = search_lark_data(st.secrets["CONFIG_TABLE_ID"], json.dumps(filter))
@@ -103,14 +91,16 @@ def get_debtor_info(phone_number):
 # Hàm để lấy thông tin nợ
 def get_debt_info(debtor_code):
     filter = {
-        "conjunction": "and",
-        "conditions": [
-            {
-                "field_name": "Người nợ",
-                "operator": "is",
-                "value": [debtor_code]
-            }
-        ]
+        "filter": {
+            "conjunction": "and",
+            "conditions": [
+                {
+                    "field_name": "Người nợ",
+                    "operator": "contains",
+                    "value": [debtor_code]
+                }
+            ]
+        }
     }
     logger.info(f"Đang tìm kiếm thông tin nợ cho người nợ: {debtor_code}")
     debt_data = search_lark_data(st.secrets["DEBT_TABLE_ID"], json.dumps(filter))
@@ -157,13 +147,14 @@ def main():
 
         with tab1:
             st.header("Tra cứu nợ")
-            phone_number = st.text_input("Nhập số điện thoại:")
+            phone_number = st.text_input("Nhập số điện thoại của bạn nhé hihi:")
             if st.button("Tra cứu"):
                 if not is_valid_phone_number(phone_number):
                     st.error("Số điện thoại không hợp lệ. Vui lòng nhập lại.")
                 else:
                     try:
                         logger.info(f"Đang tra cứu thông tin nợ cho số điện thoại: {phone_number}")
+                        st.info(f"Đang tra cứu thông tin nợ cho số điện thoại: {phone_number}")
                         debtor_code, debtor_name = get_debtor_info(phone_number)
                         if debtor_code:
                             st.session_state.debt_details = get_debt_info(debtor_code)

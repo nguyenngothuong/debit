@@ -83,6 +83,16 @@
 - Ứng dụng sử dụng module `logging` để ghi lại các hoạt động và lỗi.
 - Kiểm tra console hoặc file log để xem thông tin chi tiết về các lỗi có thể xảy ra.
 
+## Lưu ý quan trọng
+
+Khi đọc code trong file `app.py`, cần đặc biệt chú ý đến phần filter. Đây là một phần cực kỳ quan trọng của ứng dụng:
+
+- Hàm `search_lark_data()` sử dụng filter để truy vấn dữ liệu từ Lark Suite.
+- Filter được xây dựng dưới dạng JSON và cần được cấu hình chính xác để truy xuất đúng dữ liệu.
+- Đảm bảo rằng các trường trong filter (như "field_name", "operator", "value") phải khớp chính xác với cấu trúc dữ liệu trong Lark Suite.
+- Bất kỳ thay đổi nào trong cấu trúc dữ liệu của Lark Suite đều cần được cập nhật tương ứng trong phần filter này.
+- Kiểm tra kỹ lưỡng phần filter mỗi khi có sự thay đổi để đảm bảo ứng dụng vẫn hoạt động chính xác.
+
 ## Đóng góp
 
 Nếu bạn muốn đóng góp cho dự án này, vui lòng tạo một pull request hoặc mở một issue để thảo luận về các thay đổi bạn muốn thực hiện.
